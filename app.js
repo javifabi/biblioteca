@@ -1,55 +1,23 @@
 const express = require("express");
-require("dotenv").config();
+const cors = require("cors");
+const path = require("path");
 
-const sequelize = require("./database");
-const Libro = require("./Libro");
+const libroRoutes = require("./routes/libro.routes");
+const prestamoRoutes = require("./routes/prestamo.routes");
+const authRoutes = require("./routes/auth.routes");
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
 
-// Conexión a MySQL
-sequelize.authenticate()
-    .then(() => {
-        console.log("Conexión a MySQL exitosa");
-    })
-    .catch((error) => {
-        console.error("Error al conectar a MySQL:", error);
-    });
-
-// Crear tablas automáticamente
-sequelize.sync()
-    .then(() => {
-        console.log("Tabla Libro sincronizada");
-    })
-    .catch((error) => {
-        console.error("Error al sincronizar:", error);
-    });
-
-// Página principal
 app.get("/", (req, res) => {
-    res.send("Biblioteca funcionando");
+    res.send("API Biblioteca funcionando");
 });
 
-// Ver todos los libros
-app.get("/libros", async (req, res) => {
-    const libros = await Libro.findAll();
-    res.json(libros);
-});
+app.use("/api/libros", libroRoutes);
+app.use("/api/prestamos", prestamoRoutes);
+app.use("/api/auth", authRoutes);
 
-// Agregar un libro de prueba
-app.get("/agregar-libro", async (req, res) => {
-    const libro = await Libro.create({
-        titulo: "Don Quijote",
-        autor: "Miguel de Cervantes",
-        anio: 1605
-    });
-
-    res.json(libro);
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-    console.log(`Servidor iniciado en puerto ${PORT}`);
-});
+module.exports = app;
