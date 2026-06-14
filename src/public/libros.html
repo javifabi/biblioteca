@@ -2,16 +2,25 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Panel Biblioteca</title>
+    <title>Biblioteca - Libros</title>
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <h1>Panel de Biblioteca</h1>
 
+<header>
+    <h1>📚 Sistema Biblioteca</h1>
+</header>
+
+<nav>
+    <a href="/index.html">Inicio</a>
+    <a href="/libros.html">Libros</a>
+    <a href="/prestamos.html">Préstamos</a>
     <button onclick="cerrarSesion()">Cerrar sesión</button>
+</nav>
 
-    <hr>
+<div class="container">
 
-    <h2>Crear / Editar libro</h2>
+    <h2>Crear / Editar Libro</h2>
 
     <input type="hidden" id="libroId">
 
@@ -19,126 +28,180 @@
     <input type="text" id="autor" placeholder="Autor">
     <input type="number" id="anio" placeholder="Año">
 
-    <button onclick="guardarLibro()">Guardar libro</button>
+    <button onclick="guardarLibro()">Guardar Libro</button>
 
     <hr>
 
-    <h2>Listado de libros</h2>
+    <h2>Listado de Libros</h2>
 
-    <button onclick="cargarLibros()">Actualizar lista</button>
+    <input
+        type="text"
+        id="buscar"
+        placeholder="Buscar por título o autor"
+    >
 
-    <ul id="listaLibros"></ul>
+    <button onclick="buscarLibros()">Buscar</button>
+    <button onclick="limpiarBusqueda()">Limpiar</button>
 
-    <script>
-        const token = localStorage.getItem("token");
+    <div id="listaLibros"></div>
 
-        if (!token) {
-            alert("Debes iniciar sesión primero");
-            window.location.href = "/login.html";
-        }
+</div>
 
-        async function cargarLibros() {
-            const respuesta = await fetch("/api/libros");
-            const libros = await respuesta.json();
+<script>
 
-            const lista = document.getElementById("listaLibros");
-            lista.innerHTML = "";
+const token = localStorage.getItem("token");
 
-            libros.forEach(libro => {
-                const item = document.createElement("li");
+if (!token) {
+    alert("Debes iniciar sesión");
+    window.location.href = "/login.html";
+}
 
-                item.innerHTML = `
-                    <strong>${libro.titulo}</strong> - ${libro.autor} (${libro.anio})
-                    <button onclick="editarLibro(${libro.id}, '${libro.titulo}', '${libro.autor}', ${libro.anio})">Editar</button>
-                    <button onclick="eliminarLibro(${libro.id})">Eliminar</button>
-                `;
+async function cargarLibros(busqueda = "") {
 
-                lista.appendChild(item);
-            });
-        }
+    let url = "/api/libros";
 
-        async function guardarLibro() {
-            const id = document.getElementById("libroId").value;
-            const titulo = document.getElementById("titulo").value;
-            const autor = document.getElementById("autor").value;
-            const anio = document.getElementById("anio").value;
+    if (busqueda) {
+        url = `/api/libros?buscar=${encodeURIComponent(busqueda)}`;
+    }
 
-            const libro = {
-                titulo,
-                autor,
-                anio
-            };
+    const respuesta = await fetch(url);
+    const libros = await respuesta.json();
 
-            let url = "/api/libros";
-            let metodo = "POST";
+    const lista = document.getElementById("listaLibros");
+    lista.innerHTML = "";
 
-            if (id) {
-                url = `/api/libros/${id}`;
-                metodo = "PUT";
-            }
+    libros.forEach(libro => {
 
-            const respuesta = await fetch(url, {
-                method: metodo,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify(libro)
-            });
+        const card = document.createElement("div");
+        card.className = "card";
 
-            const data = await respuesta.json();
+        card.innerHTML = `
+            <h3>${libro.titulo}</h3>
 
-            if (respuesta.ok) {
-                alert(id ? "Libro actualizado" : "Libro creado");
-                limpiarFormulario();
-                cargarLibros();
-            } else {
-                alert(data.mensaje);
-            }
-        }
+            <p>
+                <strong>Autor:</strong>
+                ${libro.autor}
+            </p>
 
-        function editarLibro(id, titulo, autor, anio) {
-            document.getElementById("libroId").value = id;
-            document.getElementById("titulo").value = titulo;
-            document.getElementById("autor").value = autor;
-            document.getElementById("anio").value = anio;
-        }
+            <p>
+                <strong>Año:</strong>
+                ${libro.anio}
+            </p>
 
-        async function eliminarLibro(id) {
-            const confirmar = confirm("¿Seguro que deseas eliminar este libro?");
+            <button
+                class="btn-edit"
+                onclick="editarLibro(
+                    ${libro.id},
+                    '${libro.titulo.replace(/'/g, "\\'")}',
+                    '${libro.autor.replace(/'/g, "\\'")}',
+                    ${libro.anio || 0}
+                )"
+            >
+                Editar
+            </button>
 
-            if (!confirmar) return;
+            <button
+                class="btn-danger"
+                onclick="eliminarLibro(${libro.id})"
+            >
+                Eliminar
+            </button>
+        `;
 
-            const respuesta = await fetch(`/api/libros/${id}`, {
-                method: "DELETE",
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
+        lista.appendChild(card);
+    });
+}
 
-            const data = await respuesta.json();
+function buscarLibros() {
+    const texto = document.getElementById("buscar").value;
+    cargarLibros(texto);
+}
 
-            if (respuesta.ok) {
-                alert("Libro eliminado");
-                cargarLibros();
-            } else {
-                alert(data.mensaje);
-            }
-        }
+function limpiarBusqueda() {
+    document.getElementById("buscar").value = "";
+    cargarLibros();
+}
 
-        function limpiarFormulario() {
-            document.getElementById("libroId").value = "";
-            document.getElementById("titulo").value = "";
-            document.getElementById("autor").value = "";
-            document.getElementById("anio").value = "";
-        }
+async function guardarLibro() {
 
-        function cerrarSesion() {
-            localStorage.removeItem("token");
-            window.location.href = "/login.html";
-        }
+    const id = document.getElementById("libroId").value;
 
+    const libro = {
+        titulo: document.getElementById("titulo").value,
+        autor: document.getElementById("autor").value,
+        anio: document.getElementById("anio").value
+    };
+
+    let url = "/api/libros";
+    let metodo = "POST";
+
+    if (id) {
+        url = `/api/libros/${id}`;
+        metodo = "PUT";
+    }
+
+    const respuesta = await fetch(url, {
+        method: metodo,
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(libro)
+    });
+
+    const data = await respuesta.json();
+
+    if (respuesta.ok) {
+        alert(id ? "Libro actualizado" : "Libro creado");
+        limpiarFormulario();
         cargarLibros();
-    </script>
+    } else {
+        alert(data.mensaje || "Error");
+    }
+}
+
+function editarLibro(id, titulo, autor, anio) {
+
+    document.getElementById("libroId").value = id;
+    document.getElementById("titulo").value = titulo;
+    document.getElementById("autor").value = autor;
+    document.getElementById("anio").value = anio;
+}
+
+async function eliminarLibro(id) {
+
+    if (!confirm("¿Eliminar libro?")) {
+        return;
+    }
+
+    const respuesta = await fetch(`/api/libros/${id}`, {
+        method: "DELETE",
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    });
+
+    if (respuesta.ok) {
+        cargarLibros();
+    }
+}
+
+function limpiarFormulario() {
+
+    document.getElementById("libroId").value = "";
+    document.getElementById("titulo").value = "";
+    document.getElementById("autor").value = "";
+    document.getElementById("anio").value = "";
+}
+
+function cerrarSesion() {
+    localStorage.removeItem("token");
+    window.location.href = "/login.html";
+}
+
+cargarLibros();
+
+</script>
+
 </body>
 </html>
