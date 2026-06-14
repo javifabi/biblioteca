@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Biblioteca - Dashboard</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header>
+    <h1>📚 Sistema Biblioteca</h1>
+</header>
+
+<nav>
+    <a href="/index.html">Inicio</a>
+    <a href="/libros.html">Libros</a>
+    <a href="/prestamos.html">Préstamos</a>
+    <button onclick="cerrarSesion()">Cerrar sesión</button>
+</nav>
+
+<div class="container">
+
+    <h2>Panel Principal</h2>
+
+    <div class="card">
+        <h3>📚 Total de Libros</h3>
+        <h1 id="totalLibros">0</h1>
+    </div>
+
+    <div class="card">
+        <h3>📋 Total de Préstamos</h3>
+        <h1 id="totalPrestamos">0</h1>
+    </div>
+
+    <div class="card">
+        <h3>🟢 Préstamos Activos</h3>
+        <h1 id="prestamosActivos">0</h1>
+    </div>
+
+    <div class="card">
+        <h3>🔵 Préstamos Devueltos</h3>
+        <h1 id="prestamosDevueltos">0</h1>
+    </div>
+
+    <hr>
+
+    <h2>Últimos Libros Registrados</h2>
+    <div id="ultimosLibros"></div>
+
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+
+if (!token) {
+    window.location.href = "/login.html";
+}
+
+async function cargarDashboard() {
+    const librosResp = await fetch("/api/libros");
+    const libros = await librosResp.json();
+
+    const prestamosResp = await fetch("/api/prestamos", {
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    });
+
+    const prestamos = await prestamosResp.json();
+
+    const activos = prestamos.filter(p => p.estado === "activo").length;
+    const devueltos = prestamos.filter(p => p.estado === "devuelto").length;
+
+    document.getElementById("totalLibros").textContent = libros.length;
+    document.getElementById("totalPrestamos").textContent = prestamos.length;
+    document.getElementById("prestamosActivos").textContent = activos;
+    document.getElementById("prestamosDevueltos").textContent = devueltos;
+
+    const ultimos = libros.slice(-3).reverse();
+    const contenedor = document.getElementById("ultimosLibros");
+    contenedor.innerHTML = "";
+
+    ultimos.forEach(libro => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.innerHTML = `
+            <h3>${libro.titulo}</h3>
+            <p><strong>Autor:</strong> ${libro.autor}</p>
+            <p><strong>Año:</strong> ${libro.anio}</p>
+        `;
+
+        contenedor.appendChild(card);
+    });
+}
+
+function cerrarSesion() {
+    localStorage.removeItem("token");
+    window.location.href = "/login.html";
+}
+
+cargarDashboard();
+</script>
+
+</body>
+</html>
