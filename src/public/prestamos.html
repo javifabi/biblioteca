@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Biblioteca - Préstamos</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header>
+    <h1>📚 Sistema Biblioteca</h1>
+</header>
+
+<nav>
+    <a href="/index.html">Inicio</a>
+    <a href="/libros.html">Libros</a>
+    <a href="/prestamos.html">Préstamos</a>
+    <button onclick="cerrarSesion()">Cerrar sesión</button>
+</nav>
+
+<div class="container">
+    <h2>Crear / Editar Préstamo</h2>
+
+    <input type="hidden" id="prestamoId">
+
+    <input type="text" id="nombreUsuario" placeholder="Nombre usuario">
+    <input type="date" id="fechaPrestamo">
+    <input type="date" id="fechaDevolucion">
+
+    <select id="estado">
+        <option value="activo">Activo</option>
+        <option value="devuelto">Devuelto</option>
+        <option value="atrasado">Atrasado</option>
+    </select>
+
+    <select id="libroId">
+        <option value="">Seleccione un libro</option>
+    </select>
+
+    <button onclick="guardarPrestamo()">Guardar Préstamo</button>
+
+    <hr>
+
+    <h2>Listado de Préstamos</h2>
+
+    <button onclick="cargarPrestamos()">Actualizar</button>
+
+    <div id="listaPrestamos"></div>
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+
+if (!token) {
+    alert("Debes iniciar sesión");
+    window.location.href = "/login.html";
+}
+
+let librosDisponibles = [];
+
+async function cargarLibrosSelect() {
+    const respuesta = await fetch("/api/libros");
+    const libros = await respuesta.json();
+
+    librosDisponibles = libros;
+
+    const select = document.getElementById("libroId");
+    select.innerHTML = `<option value="">Seleccione un libro</option>`;
+
+    libros.forEach(libro => {
+        const option = document.createElement("option");
+        option.value = libro.id;
+        option.textContent = `${libro.titulo} - ${libro.autor}`;
+        select.appendChild(option);
+    });
+}
+
+function obtenerNombreLibro(libroId) {
+    const libro = librosDisponibles.find(l => l.id === libroId);
+    return libro ? libro.titulo : `Libro ID: ${libroId}`;
+}
+
+async function cargarPrestamos() {
+    const respuesta = await fetch("/api/prestamos", {
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    });
+
+    const prestamos = await respuesta.json();
+
+    const lista = document.getElementById("listaPrestamos");
+    lista.innerHTML = "";
+
+    prestamos.forEach(prestamo => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const nombreLibro = obtenerNombreLibro(prestamo.libroId);
+
+        card.innerHTML = `
+            <h3>📖 ${nombreLibro}</h3>
+            <p><strong>Usuario:</strong> ${prestamo.nombreUsuario}</p>
+            <p><strong>Fecha préstamo:</strong> ${prestamo.fechaPrestamo}</p>
+            <p><strong>Fecha devolución:</strong> ${prestamo.fechaDevolucion || "Pendiente"}</p>
+            <p><strong>Estado:</strong> ${prestamo.estado}</p>
+
+            <button class="btn-edit"
+                onclick="editarPrestamo(
+                    ${prestamo.id},
+                    '${prestamo.nombreUsuario}',
+                    '${prestamo.fechaPrestamo}',
+                    '${prestamo.fechaDevolucion || ""}',
+                    '${prestamo.estado}',
+                    ${prestamo.libroId}
+                )">
+                Editar
+            </button>
+
+            <button class="btn-danger" onclick="eliminarPrestamo(${prestamo.id})">
+                Eliminar
+            </button>
+        `;
+
+        lista.appendChild(card);
+    });
+}
+
+async function guardarPrestamo() {
+    const id = document.getElementById("prestamoId").value;
+
+    const prestamo = {
+        nombreUsuario: document.getElementById("nombreUsuario").value,
+        fechaPrestamo: document.getElementById("fechaPrestamo").value,
+        fechaDevolucion: document.getElementById("fechaDevolucion").value,
+        estado: document.getElementById("estado").value,
+        libroId: document.getElementById("libroId").value
+    };
+
+    let url = "/api/prestamos";
+    let metodo = "POST";
+
+    if (id) {
+        url = `/api/prestamos/${id}`;
+        metodo = "PUT";
+    }
+
+    const respuesta = await fetch(url, {
+        method: metodo,
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(prestamo)
+    });
+
+    const data = await respuesta.json();
+
+    if (respuesta.ok) {
+        alert(id ? "Préstamo actualizado" : "Préstamo creado");
+        limpiarFormulario();
+        cargarPrestamos();
+    } else {
+        alert(data.mensaje);
+    }
+}
+
+function editarPrestamo(id, nombreUsuario, fechaPrestamo, fechaDevolucion, estado, libroId) {
+    document.getElementById("prestamoId").value = id;
+    document.getElementById("nombreUsuario").value = nombreUsuario;
+    document.getElementById("fechaPrestamo").value = fechaPrestamo;
+    document.getElementById("fechaDevolucion").value = fechaDevolucion;
+    document.getElementById("estado").value = estado;
+    document.getElementById("libroId").value = libroId;
+}
+
+async function eliminarPrestamo(id) {
+    if (!confirm("¿Eliminar préstamo?")) return;
+
+    const respuesta = await fetch(`/api/prestamos/${id}`, {
+        method: "DELETE",
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    });
+
+    if (respuesta.ok) {
+        cargarPrestamos();
+    }
+}
+
+function limpiarFormulario() {
+    document.getElementById("prestamoId").value = "";
+    document.getElementById("nombreUsuario").value = "";
+    document.getElementById("fechaPrestamo").value = "";
+    document.getElementById("fechaDevolucion").value = "";
+    document.getElementById("estado").value = "activo";
+    document.getElementById("libroId").value = "";
+}
+
+function cerrarSesion() {
+    localStorage.removeItem("token");
+    window.location.href = "/login.html";
+}
+
+async function iniciarPagina() {
+    await cargarLibrosSelect();
+    await cargarPrestamos();
+}
+
+iniciarPagina();
+</script>
+
+</body>
+</html>
