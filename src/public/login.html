@@ -3,56 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <title>Login - Biblioteca</title>
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <h1>Login Biblioteca</h1>
+
+<header>
+    <h1>📚 Sistema Biblioteca</h1>
+</header>
+
+<div class="container">
+    <h2>Iniciar Sesión</h2>
 
     <form id="formLogin">
-        <label>Email:</label>
-        <input type="email" id="email" required>
+        <input type="email" id="email" placeholder="Correo electrónico" required>
+        <input type="password" id="password" placeholder="Contraseña" required>
 
-        <br><br>
-
-        <label>Contraseña:</label>
-        <input type="password" id="password" required>
-
-        <br><br>
-
-        <button type="submit">Iniciar sesión</button>
+        <button type="submit">Ingresar</button>
     </form>
 
     <p id="mensaje"></p>
+</div>
 
-    <script>
-        const form = document.getElementById("formLogin");
+<script>
+const form = document.getElementById("formLogin");
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-            const respuesta = await fetch("/api/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ email, password })
-            });
+    const respuesta = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, password })
+    });
 
-            const data = await respuesta.json();
+    const data = await respuesta.json();
 
-            if (respuesta.ok) {
-                localStorage.setItem("token", data.token);
-                document.getElementById("mensaje").textContent = "Login correcto";
+    if (respuesta.ok) {
+        localStorage.setItem("token", data.token);
+        document.getElementById("mensaje").textContent = "Login correcto. Redirigiendo...";
 
-                setTimeout(() => {
-                    window.location.href = "/libros.html";
-                }, 1000);
-            } else {
-                document.getElementById("mensaje").textContent = data.mensaje;
-            }
-        });
-    </script>
+        setTimeout(() => {
+            window.location.href = "/index.html";
+        }, 800);
+    } else {
+        document.getElementById("mensaje").textContent = data.mensaje;
+    }
+});
+</script>
+
 </body>
 </html>
