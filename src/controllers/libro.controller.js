@@ -1,8 +1,25 @@
+const { Op } = require("sequelize");
 const Libro = require("../models/libro.model");
 
 const listarLibros = async (req, res) => {
     try {
-        const libros = await Libro.findAll();
+        const { buscar } = req.query;
+
+        let condicion = {};
+
+        if (buscar) {
+            condicion = {
+                [Op.or]: [
+                    { titulo: { [Op.like]: `%${buscar}%` } },
+                    { autor: { [Op.like]: `%${buscar}%` } }
+                ]
+            };
+        }
+
+        const libros = await Libro.findAll({
+            where: condicion
+        });
+
         res.json(libros);
     } catch (error) {
         res.status(500).json({ mensaje: "Error al listar libros", error });
