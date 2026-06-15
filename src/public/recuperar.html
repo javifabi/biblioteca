@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Recuperar contraseña</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>Restablecer contraseña</h2>
+
+    <input type="email" id="email" placeholder="Correo electrónico">
+
+    <input type="password" id="nuevaPassword" placeholder="Nueva contraseña">
+
+    <button onclick="restablecer()">
+        Cambiar contraseña
+    </button>
+
+    <p>
+        <a href="/login.html">Volver al login</a>
+    </p>
+</div>
+
+<script>
+async function restablecer() {
+
+    const email = document.getElementById("email").value;
+    const nuevaPassword = document.getElementById("nuevaPassword").value;
+
+    const respuesta = await fetch("/api/auth/restablecer-password", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            email,
+            nuevaPassword
+        })
+    });
+
+    const data = await respuesta.json();
+
+    alert(data.mensaje);
+
+    if (respuesta.ok) {
+        window.location.href = "/login.html";
+    }
+}
+</script>
+
+</body>
+</html>
