@@ -11,7 +11,7 @@ sequelize.authenticate()
     .then(() => {
         console.log("Conexión a MySQL exitosa");
 
-       return sequelize.sync({ alter: true });
+       return sequelize.sync();
     })
     .then(() => {
         console.log("Base de datos sincronizada");
