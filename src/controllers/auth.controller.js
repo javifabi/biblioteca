@@ -37,7 +37,10 @@ const registrar = async (req, res) => {
             }
         });
     } catch (error) {
-        res.status(500).json({ mensaje: "Error al registrar usuario", error });
+        res.status(500).json({
+            mensaje: "Error al registrar usuario",
+            error
+        });
     }
 };
 
@@ -83,11 +86,50 @@ const login = async (req, res) => {
             token
         });
     } catch (error) {
-        res.status(500).json({ mensaje: "Error al iniciar sesión", error });
+        res.status(500).json({
+            mensaje: "Error al iniciar sesión",
+            error
+        });
+    }
+};
+
+const restablecerPassword = async (req, res) => {
+    try {
+        const { email, nuevaPassword } = req.body;
+
+        if (!email || !nuevaPassword) {
+            return res.status(400).json({
+                mensaje: "Email y nueva contraseña son obligatorios"
+            });
+        }
+
+        const usuario = await Usuario.findOne({ where: { email } });
+
+        if (!usuario) {
+            return res.status(404).json({
+                mensaje: "Usuario no encontrado"
+            });
+        }
+
+        const passwordEncriptada = await bcrypt.hash(nuevaPassword, 10);
+
+        await usuario.update({
+            password: passwordEncriptada
+        });
+
+        res.json({
+            mensaje: "Contraseña restablecida correctamente"
+        });
+    } catch (error) {
+        res.status(500).json({
+            mensaje: "Error al restablecer contraseña",
+            error
+        });
     }
 };
 
 module.exports = {
     registrar,
-    login
+    login,
+    restablecerPassword
 };
